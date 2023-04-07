@@ -1,10 +1,31 @@
-package configurizer
+package main
 
-import "github.com/akamensky/argparse"
+import (
+	"log"
+	"os"
+
+	"github.com/ferretcode/configurizer/commands"
+)
 
 func main() {
-	parser := argparse.NewParser("cfgr", "The configurizer command line tool")
+	switch command := os.Args[1]; command {
+	case "configure":
+		if len(os.Args) < 3 {
+			log.Fatal("You need to provide a path to your config file!")
+		}
 
-	newProvider := parser.String("new", "new-provider", &argparse.Options{Required: false})
-	path := parser.String("path", "config-path", &argparse.Options{Required: true})
+		commands.Configure(os.Args[2])
+	case "new-provider":
+		if len(os.Args) < 3 {
+			log.Fatal("You need to provide a path to your provider file!")
+		}
+
+		commands.NewProvider(os.Args[2])
+	case "--help":
+		log.Println(
+			"Valid commands are `configure` and `new-provider`.\nconfigure\tdeploys your project\nnew-provider\tcreates a new provider",
+		)
+	default:
+		log.Fatal("Please provide a valid command!")
+	}
 }
