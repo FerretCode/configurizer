@@ -15,12 +15,6 @@ func main() {
 		}
 
 		commands.Configure(os.Args[2])
-	case "new-provider":
-		if len(os.Args) < 3 {
-			log.Fatal("You need to provide a path to your provider file!")
-		}
-
-		commands.NewProvider(os.Args[2])
 	case "--help":
 		log.Println(
 			"Valid commands are `configure` and `new-provider`.\nconfigure\tdeploys your project\nnew-provider\tcreates a new provider",

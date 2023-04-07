@@ -1,0 +1,15 @@
+providerName: railway
+type: cli
+requiredFields:
+  - name: PROJECT_NAME
+    fieldName: projectName
+steps:
+  - name: initProject
+    command: "railway init --name {PROJECT_NAME}" # field can be accessed from requiredFields with this syntax
+    capture:
+      - name: PROJECT_ID
+        regex: \/([\w-]+)$
+  - name: linkProject
+    command: "railway link {PROJECT_ID}" # you can also use captured fields the same way
+  - name: deploy
+    command: "railway up"
