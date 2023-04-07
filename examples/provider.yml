@@ -1,0 +1,7 @@
+providerName: railway
+type: cli
+steps:
+  - name: initProject
+    command: "railway init --name {PROJECT_NAME}"
+  - name: uploadProject
+    command: "railway up {PROJECT_ID}"
