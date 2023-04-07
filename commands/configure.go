@@ -2,7 +2,9 @@ package commands
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/go-yaml/yaml"
@@ -18,6 +20,59 @@ func Configure(path string) {
 	config := make(map[string]interface{})
 
 	err = yaml.Unmarshal(file, &config)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	homeDir, err := os.UserHomeDir()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err := os.Stat(fmt.Sprintf("%s/.configurizer", homeDir)); os.IsNotExist(err) {
+		os.Mkdir(fmt.Sprintf("%s/.configurizer", homeDir), os.ModeDir)
+	}
+
+	// https://raw.githubusercontent.com/FerretCode/configurizer/main/providers/railway.yml
+
+	client := http.Client{}
+
+	req, err := http.NewRequest(
+		"GET",
+		fmt.Sprintf(
+			"https://raw.githubusercontent.com/FerretCode/configurizer/main/providers/%s.yml",
+			config["provider"],
+		),
+		nil,
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	provider, err := io.ReadAll(res.Body)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	newFile, err := os.Create(fmt.Sprintf("%s/.configurizer/%s.yml", homeDir, config["provider"]))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer newFile.Close()
+
+	_, err = newFile.Write(provider)
 
 	if err != nil {
 		log.Fatal(err)
