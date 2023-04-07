@@ -58,7 +58,7 @@ func Configure(path string) {
 		log.Fatal(err)
 	}
 
-	provider, err := io.ReadAll(res.Body)
+	providerByte, err := io.ReadAll(res.Body)
 
 	if err != nil {
 		log.Fatal(err)
@@ -72,10 +72,22 @@ func Configure(path string) {
 
 	defer newFile.Close()
 
-	_, err = newFile.Write(provider)
+	_, err = newFile.Write(providerByte)
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	provider := make(map[string]interface{})
+
+	err = yaml.Unmarshal(providerByte, &provider)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for k, v := range provider["requiredFields"].(map[string]string) {
+
 	}
 
 	fmt.Println(config)
