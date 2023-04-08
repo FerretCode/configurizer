@@ -6,6 +6,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"regexp"
+	"strings"
 
 	"github.com/go-yaml/yaml"
 )
@@ -32,7 +35,7 @@ func Configure(path string) {
 	}
 
 	if _, err := os.Stat(fmt.Sprintf("%s/.configurizer", homeDir)); os.IsNotExist(err) {
-		os.Mkdir(fmt.Sprintf("%s/.configurizer", homeDir), os.ModeDir)
+		os.Mkdir(fmt.Sprintf("%s/.configurizer", homeDir), 0777)
 	}
 
 	// https://raw.githubusercontent.com/FerretCode/configurizer/main/providers/railway.yml
@@ -86,11 +89,48 @@ func Configure(path string) {
 		log.Fatal(err)
 	}
 
-	for k := range provider["requiredFields"].(map[string]string) {
-		if config[k] == "" {
-			log.Fatalf("Required field %s was not provided.\n", k)
+	for _, v := range provider["requiredFields"].([]interface{}) {
+		for key := range v.(map[interface{}]interface{}) {
+			if config[key.(string)] == "" {
+				log.Fatalf("Required field %s is not provided.\n", key)
+			} 
 		}
 	}
 
-	fmt.Println(config)
+	var captures []string
+
+	for _, v := range provider["steps"].([]interface{}) {
+		command := strings.Split(
+			v.(map[interface{}]interface{})["command"].(string), 
+			" ",
+		)
+
+		regex := regexp.Regexp{}
+
+		match := regex.Find(
+			[]byte(
+				v.(map[interface{}]interface{})["command"].(string),
+			),
+		)
+
+		if len(match) > 0 {
+			capture := v.(map[interface{}]interface{})["capture"].(map[string]string)
+
+			pattern := capture["regex"]
+
+			captured := regex.Find([]byte(pattern))
+
+			captures = append(captures, string(captured))
+		}
+
+		err := exec.Command(command[0], command[1:]...)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if v.(map[interface{}]interface{})["capture"] != nil {
+				
+		}
+	}
 }
