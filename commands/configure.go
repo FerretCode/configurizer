@@ -92,12 +92,13 @@ func Configure(path string) {
 	var captures []string
 
 	for _, v := range provider["steps"].([]interface{}) {
-		command := strings.Split(
-			v.(map[interface{}]interface{})["command"].(string),
-			" ",
-		)
+	  commandString := v.(map[interface{}]interface{})["command"].(string)
 
-		regex := regexp.Regexp{}
+    regex, err := regexp.Compile(`\{([^}]+)\}`)
+
+    if err != nil {
+      log.Fatal(err)
+    }
 
 		match := regex.Find(
 			[]byte(
@@ -107,26 +108,58 @@ func Configure(path string) {
 
 		if len(match) > 0 {
 			for _, v := range provider["requiredFields"].([]interface{}) {
-				for key := range v.(map[interface{}]interface{}) {
-					if config[key.(string)] == "" {
-						log.Fatalf("Required field %s is not provided.\n", key)
-					}
-				}
+        fieldName := v.(map[interface{}]interface{})["fieldName"].(string)
+
+        if config[fieldName] == "" {
+          log.Fatalf(
+            "Required field %s is not provided.\n", 
+            v.(map[interface{}]interface{})["fieldName"].(string),
+          )
+        }
+
+        commandString = strings.ReplaceAll(
+          commandString, 
+          string(match), 
+          config[fieldName].(string),
+        )    
 			}
 		}
 
-		err := exec.Command(command[0], command[1:]...)
+    command := strings.Split(
+      commandString,
+			" ",
+		)
 
-		if err != nil {
-			log.Fatal(err)
-		}
+    cmd := exec.Command(command[0], command[1:]...) 
+
+    if cmd.Err != nil {
+      log.Fatal(cmd.Err.Error())
+    }
 
 		if v.(map[interface{}]interface{})["capture"] != nil {
-			capture := v.(map[interface{}]interface{})["capture"].(map[string]string)
+      fmt.Println(v.(map[interface{}]interface{})["capture"])
 
-			pattern := capture["regex"]
+			capture := v.(map[interface{}]interface{})["capture"].([]interface{})
 
-			captured := regex.Find([]byte(pattern))
+			pattern := capture[0].(map[interface{}]interface{})["regex"]
+
+      fmt.Println(pattern)
+
+      regex, err := regexp.Compile(pattern.(string)) 
+
+      if err != nil {
+        log.Fatal(err)
+      }
+
+      output, err := cmd.Output()
+
+      if err != nil {
+        log.Fatal(err)
+      }
+
+      fmt.Println(string(output))
+
+			captured := regex.Find(output)
 
 			if len(captured) > 0 {
 				captures = append(captures, string(captured))
