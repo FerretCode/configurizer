@@ -89,19 +89,11 @@ func Configure(path string) {
 		log.Fatal(err)
 	}
 
-	for _, v := range provider["requiredFields"].([]interface{}) {
-		for key := range v.(map[interface{}]interface{}) {
-			if config[key.(string)] == "" {
-				log.Fatalf("Required field %s is not provided.\n", key)
-			} 
-		}
-	}
-
 	var captures []string
 
 	for _, v := range provider["steps"].([]interface{}) {
 		command := strings.Split(
-			v.(map[interface{}]interface{})["command"].(string), 
+			v.(map[interface{}]interface{})["command"].(string),
 			" ",
 		)
 
@@ -114,13 +106,13 @@ func Configure(path string) {
 		)
 
 		if len(match) > 0 {
-			capture := v.(map[interface{}]interface{})["capture"].(map[string]string)
-
-			pattern := capture["regex"]
-
-			captured := regex.Find([]byte(pattern))
-
-			captures = append(captures, string(captured))
+			for _, v := range provider["requiredFields"].([]interface{}) {
+				for key := range v.(map[interface{}]interface{}) {
+					if config[key.(string)] == "" {
+						log.Fatalf("Required field %s is not provided.\n", key)
+					}
+				}
+			}
 		}
 
 		err := exec.Command(command[0], command[1:]...)
@@ -130,7 +122,15 @@ func Configure(path string) {
 		}
 
 		if v.(map[interface{}]interface{})["capture"] != nil {
-				
+			capture := v.(map[interface{}]interface{})["capture"].(map[string]string)
+
+			pattern := capture["regex"]
+
+			captured := regex.Find([]byte(pattern))
+
+			if len(captured) > 0 {
+				captures = append(captures, string(captured))
+			}
 		}
 	}
 }
