@@ -86,8 +86,10 @@ func Configure(path string) {
 		log.Fatal(err)
 	}
 
-	for k, v := range provider["requiredFields"].(map[string]string) {
-
+	for k := range provider["requiredFields"].(map[string]string) {
+		if config[k] == "" {
+			log.Fatalf("Required field %s was not provided.\n", k)
+		}
 	}
 
 	fmt.Println(config)
