@@ -168,7 +168,7 @@ func Configure(path string) {
 			outputByte, err := cmd.Output()
 
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal(cmd.Err.Error())
 			}
 
 			fmt.Println(string(outputByte))
@@ -187,7 +187,7 @@ func Configure(path string) {
 		outputByte, err := cmd.Output()
 
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(cmd.Err.Error())
 		}
 
 		fmt.Println(string(outputByte))
