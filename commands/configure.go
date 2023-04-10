@@ -28,11 +28,13 @@ func Configure(path string) {
 		log.Fatal(err)
 	}
 
-	homeDir, err := os.UserHomeDir()
+	/*homeDir, err := os.UserHomeDir()
 
 	if err != nil {
 		log.Fatal(err)
-	}
+	}*/
+
+	homeDir := "."
 
 	if _, err := os.Stat(fmt.Sprintf("%s/.configurizer", homeDir)); os.IsNotExist(err) {
 		os.Mkdir(fmt.Sprintf("%s/.configurizer", homeDir), 0777)
@@ -89,16 +91,16 @@ func Configure(path string) {
 		log.Fatal(err)
 	}
 
-  captures := make(map[string]string)
+	captures := make(map[string]string)
 
 	for _, v := range provider["steps"].([]interface{}) {
-	  commandString := v.(map[interface{}]interface{})["command"].(string)
+		commandString := v.(map[interface{}]interface{})["command"].(string)
 
-    regex, err := regexp.Compile(`\{([^}]+)\}`)
+		regex, err := regexp.Compile(`\{([^}]+)\}`)
 
-    if err != nil {
-      log.Fatal(err)
-    }
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		match := regex.Find(
 			[]byte(
@@ -108,77 +110,75 @@ func Configure(path string) {
 
 		if len(match) > 0 {
 			for _, v := range provider["requiredFields"].([]interface{}) {
-        fieldName := v.(map[interface{}]interface{})["fieldName"].(string)
-        name := v.(map[interface{}]interface{})["name"]
+				fieldName := v.(map[interface{}]interface{})["fieldName"].(string)
+				name := v.(map[interface{}]interface{})["name"]
 
-        if config[fieldName] == "" {
-          log.Fatalf(
-            "Required field %s is not provided.\n", 
-            v.(map[interface{}]interface{})["fieldName"].(string),
-          )
-        }
-        
-        if regex.FindStringSubmatch(commandString)[1] == name.(string) {
-          commandString = strings.ReplaceAll(
-            commandString, 
-            string(match), 
-            config[fieldName].(string),
-          ) 
-        }
+				if config[fieldName] == "" {
+					log.Fatalf(
+						"Required field %s is not provided.\n",
+						v.(map[interface{}]interface{})["fieldName"].(string),
+					)
+				}
+
+				if regex.FindStringSubmatch(commandString)[1] == name.(string) {
+					commandString = strings.ReplaceAll(
+						commandString,
+						string(match),
+						config[fieldName].(string),
+					)
+				}
 			}
 
-      // re-check regex
-      fmt.Println(commandString)
+			// re-check regex
+			match := regex.FindStringSubmatch(commandString)
 
-      match := regex.FindStringSubmatch(commandString)
-
-      if len(match) > 1 {
-        if captures[match[1]] != "" {
-          commandString = strings.ReplaceAll(
-            commandString,
-            match[0],
-            captures[match[1]],
-          )
-
-          fmt.Println(commandString)
-        }
-      }
+			if len(match) > 1 {
+				if captures[match[1]] != "" {
+					commandString = strings.ReplaceAll(
+						commandString,
+						match[0],
+						captures[match[1]],
+					)
+				}
+			}
 		}
 
-    command := strings.Split(
-      commandString,
+		command := strings.Split(
+			commandString,
 			" ",
 		)
 
-    cmd := exec.Command(command[0], command[1:]...) 
+		cmd := exec.Command(command[0], command[1:]...)
 
-    if cmd.Err != nil {
-      log.Fatal(cmd.Err.Error())
-    }
+		if cmd.Err != nil {
+			log.Fatal(cmd.Err.Error())
+		}
 
 		if v.(map[interface{}]interface{})["capture"] != nil {
 			capture := v.(map[interface{}]interface{})["capture"].(map[interface{}]interface{})
 
 			pattern := capture["regex"]
 
-      regex, err := regexp.Compile(pattern.(string)) 
+			regex, err := regexp.Compile(pattern.(string))
 
-      if err != nil {
-        log.Fatal(err)
-      }
+			if err != nil {
+				log.Fatal(err)
+			}
 
-      outputByte, err := cmd.Output()
+			outputByte, err := cmd.Output()
 
-      if err != nil {
-        log.Fatal(err)
-      }
+			if err != nil {
+				log.Fatal(err)
+			}
 
-      output := strings.TrimSuffix(string(outputByte), "\n")
+			fmt.Println(string(outputByte))
+
+			output := strings.TrimSuffix(string(outputByte), "\n")
 
 			captured := regex.FindStringSubmatch(output)
 
 			if len(captured) > 1 {
-        captures[capture["name"].(string)] = string(captured[1])
+				captures[capture["name"].(string)] = string(captured[1])
 			}
 		}
 	}
