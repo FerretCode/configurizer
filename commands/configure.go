@@ -89,7 +89,7 @@ func Configure(path string) {
 		log.Fatal(err)
 	}
 
-	var captures []string
+  captures := make(map[string]string)
 
 	for _, v := range provider["steps"].([]interface{}) {
 	  commandString := v.(map[interface{}]interface{})["command"].(string)
@@ -109,6 +109,7 @@ func Configure(path string) {
 		if len(match) > 0 {
 			for _, v := range provider["requiredFields"].([]interface{}) {
         fieldName := v.(map[interface{}]interface{})["fieldName"].(string)
+        name := v.(map[interface{}]interface{})["name"]
 
         if config[fieldName] == "" {
           log.Fatalf(
@@ -116,13 +117,32 @@ func Configure(path string) {
             v.(map[interface{}]interface{})["fieldName"].(string),
           )
         }
-
-        commandString = strings.ReplaceAll(
-          commandString, 
-          string(match), 
-          config[fieldName].(string),
-        )    
+        
+        if regex.FindStringSubmatch(commandString)[1] == name.(string) {
+          commandString = strings.ReplaceAll(
+            commandString, 
+            string(match), 
+            config[fieldName].(string),
+          ) 
+        }
 			}
+
+      // re-check regex
+      fmt.Println(commandString)
+
+      match := regex.FindStringSubmatch(commandString)
+
+      if len(match) > 1 {
+        if captures[match[1]] != "" {
+          commandString = strings.ReplaceAll(
+            commandString,
+            match[0],
+            captures[match[1]],
+          )
+
+          fmt.Println(commandString)
+        }
+      }
 		}
 
     command := strings.Split(
@@ -137,13 +157,9 @@ func Configure(path string) {
     }
 
 		if v.(map[interface{}]interface{})["capture"] != nil {
-      fmt.Println(v.(map[interface{}]interface{})["capture"])
+			capture := v.(map[interface{}]interface{})["capture"].(map[interface{}]interface{})
 
-			capture := v.(map[interface{}]interface{})["capture"].([]interface{})
-
-			pattern := capture[0].(map[interface{}]interface{})["regex"]
-
-      fmt.Println(pattern)
+			pattern := capture["regex"]
 
       regex, err := regexp.Compile(pattern.(string)) 
 
@@ -151,18 +167,18 @@ func Configure(path string) {
         log.Fatal(err)
       }
 
-      output, err := cmd.Output()
+      outputByte, err := cmd.Output()
 
       if err != nil {
         log.Fatal(err)
       }
 
-      fmt.Println(string(output))
+      output := strings.TrimSuffix(string(outputByte), "\n")
 
-			captured := regex.Find(output)
+			captured := regex.FindStringSubmatch(output)
 
-			if len(captured) > 0 {
-				captures = append(captures, string(captured))
+			if len(captured) > 1 {
+        captures[capture["name"].(string)] = string(captured[1])
 			}
 		}
 	}
