@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -96,6 +97,8 @@ func Configure(path string) {
 	for _, v := range provider["steps"].([]interface{}) {
 		commandString := v.(map[interface{}]interface{})["command"].(string)
 
+		fmt.Println(commandString)
+
 		regex, err := regexp.Compile(`\{([^}]+)\}`)
 
 		if err != nil {
@@ -150,6 +153,8 @@ func Configure(path string) {
 
 		cmd := exec.Command(command[0], command[1:]...)
 
+		fmt.Println(cmd)
+
 		if cmd.Err != nil {
 			log.Fatal(cmd.Err.Error())
 		}
@@ -165,15 +170,27 @@ func Configure(path string) {
 				log.Fatal(err)
 			}
 
-			outputByte, err := cmd.Output()
+			output := ""
 
-			if err != nil {
+			stderr, _ := cmd.StdoutPipe()
+
+			if err := cmd.Start(); err != nil {
 				log.Fatal(err)
 			}
 
-			fmt.Println(string(outputByte))
+			scanner := bufio.NewScanner(stderr)
+			scanner.Split(bufio.ScanLines)
+			for scanner.Scan() {
+				m := scanner.Text()
+				output += m
+				fmt.Println(m)
+			}
 
-			output := strings.TrimSuffix(string(outputByte), "\n")
+			if waitErr := cmd.Wait(); waitErr != nil {
+				log.Fatal(err)
+			}
+
+			output = strings.TrimSuffix(output, "\n")
 
 			captured := regex.FindStringSubmatch(output)
 

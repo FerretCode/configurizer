@@ -19,6 +19,8 @@ func main() {
 		log.Println(
 			"Valid commands are `configure` and `new-provider`.\nconfigure\tdeploys your project\nnew-provider\tcreates a new provider",
 		)
+	case "test":
+		commands.Test()
 	default:
 		log.Fatal("Please provide a valid command!")
 	}
